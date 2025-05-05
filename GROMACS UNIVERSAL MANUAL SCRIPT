@@ -1,0 +1,213 @@
+#GROMACS UNIVERSAL MANUAL SCRIPT for MacOS
+by: Mia Joy A. Inocencio
+
+###################MANNUAL-GROMACS-PROTEIN LIGAND CODES###########################
+https://github.com/DweipayanG/GROMACS-Protein-Ligand
+	- download all files and place them in one working location where MD simulation will be conducted.
+	- click: code < download ZIP
+
+#########STEPS FOR MD AS FOLLOWS######### 
+
+---PREPARE LIGAND AND PROTEIN IN UCSF CHIMERA----
+1. open the protein and make sure to isolate chain A and remove other ligands and molecules.
+	-click: tools < Surface/Binding Analysis < Dock Prep
+	-unclick: incomplete side chains, and Write Mol2 file < ok
+	-click: ok
+	-click: Gasteiger < ok
+	-click: ok
+	-save
+
+2. Open ligand, add hdrogens, and save it as 'LIG.mol2' ( depends on preferred name and it must be 3 letters only)
+
+#Open the LIG.mol2 file and in the second line 
+#Correction to be made in LIG.mol2 
+#Open LIG.mol2 by using nano command or simply opening the file in any text editor.
+
+2.1. "@<TRIPOS>MOLECULE" make sure this is the first line in the file.
+		-Delete the header and empty spaces if present.
+	
+2.2. "@<TRIPOS>MOLECULE” there will be a name after this line maybe xxx.pdb or anything else.
+		-Replace to: LIG
+	
+2.3.	Bond orders "@<TRIPOS>BOND" will be arranged differently in each file. 
+Arrange them in specific order to avoid errors using terminal. 
+Note: before copying the code below, make sure the working directory is fixed in the terminal (cd users/file path)
+	-Copy: perl sort_mol2_bonds.pl LIG.mol2 LIG.mol2
+
+3. Go to SwissParam "http://www.swissparam.ch/" and upload the 'Lig.mol2 file'
+4. Download the .zip folder
+5. Extract the folder and select MMFF folder. 
+Copy all the files except for LIG.mol2 and paste them to your working directory.
+6. Open the best pose ligand with the receptor.pdb file.
+	-Delete ligand, perform DockPrep, save it as .pdb file as 'REC.pdb'
+7. Make a working folder for Gromacs, copy contents of the downloaded zip file into this folder, 
+copy the DockPrep 'rec.pdb' in to th working folder
+8. Copy all the .mdp files into this working folder
+9. Open the terminal in this working folder and proceed with Gromacs.  
+
+---------GROMACS-----------
+1. Open terminal and copy per line:
+	gmx pdb2gmx -f REC.pdb -ignh
+	8 (CHARMM27)
+	1 (TIP3P)
+	gmx editconf -f LIG.pdb -o LIG.gro
+	nano conf.gro LIG.gro
+	^j (justify)
+	^x (exit)
+
+Open lig.gro and conf.gro through texteditor.
+1. Copy content from 3rd line of lig.gro to the conf.gro file up to the 2nd last line.
+2. Check the column number from where the lig.gro data ends (x) in conf.gro and replace the value in 2nd line by x-4.
+3. Open file in chimera to check ligand and protein if working.
+
+-----EDIT THE FOLLOWING in topol.top -----
+1. Open topol.top file: 
+Search and Below: 
+	Include forcefield parameters
+	#include "amberGS.ff/forcefield.itp")
+Add:
+	; Include ligand topology 
+	#include "LIG.itp"
+
+Last line
+Add: 
+	LIG 1
+
+-----EDIT THE FOLLOWING in lig.itp -----
+1. Open LIG.itp
+Change:
+	[ moleculetype ]
+	; Name nrexcl
+	lig_gmx2 3
+
+To:
+	[ moleculetype ]
+	; Name nrexcl
+	LIG 3
+
+----------
+
+Copy the following commands in the terminal:
+
+	gmx editconf -f conf.gro -d 1.0 -bt triclinic -o box.gro
+
+	gmx solvate -cp box.gro -cs spc216.gro -p topol.top -o box_sol.gro
+		-Open VMD software and open box_sol.gro file to check the box
+
+	gmx grompp -f ions.mdp -c box_sol.gro -p topol.top -o ION.tpr      
+	(OR)
+	gmx grompp -f ions.mdp -c box_sol.gro -maxwarn 2 -p topol.top -o ION.tpr
+
+	gmx genion -s ION.tpr -p topol.top -conc 0.1 -neutral -o box_sol_ion.gro
+	15
+
+	gmx grompp -f EM.mdp -c box_sol_ion.gro -p topol.top -o EM.tpr     
+	(OR)
+	gmx grompp -f EM.mdp -c box_sol_ion.gro -maxwarn 2 -p topol.top -o EM.tpr
+
+	gmx mdrun -v -deffnm EM
+
+2. Make index files. Copy the following commands in the terminal:
+ 
+	gmx make_ndx -f LIG.gro -o index_LIG.ndx
+		 > 0 & ! a H*
+ 		 > q
+
+	gmx genrestr -f LIG.gro -n index_LIG.ndx -o posre_LIG.itp -fc 1000 1000 1000
+		> select group "3"
+	
+3. Open topol.top file
+
+	at the end of the document
+
+	Search and Below 
+		"; Include Position restraint file
+		#ifdef POSRES
+		#include "posre.itp"
+		#endif
+
+	Add:  
+		; Ligand position restraints
+		#ifdef POSRES
+		#include "posre_LIG.itp"
+		#endif
+
+4. Make other index file for System. Open terminal and copy commands:
+	gmx make_ndx -f EM.gro -o index.ndx
+	> 1 | 13
+	> q
+	
+	Open NPT.mdp and NVT.mdp files. 
+	-nsteps should be like this:
+		nsteps                  = 50000     ; 2 * 50000 = 100 ps
+
+-----[NVT]-----
+1. copy the following commands in the terminal:
+	gmx grompp -f NVT.mdp -c EM.gro -r EM.gro -p topol.top -n index.ndx -maxwarn 2 -o NVT.tpr
+	
+	gmx mdrun -deffnm NVT
+
+
+-----[NPT]-----
+1. Copy the following commands in the terminal:
+gmx grompp -f NPT.mdp -c NVT.gro -r NVT.gro -p topol.top -n index.ndx -maxwarn 2 -o NPT.tpr
+	
+gmx mdrun -deffnm NPT
+
+## to know the progress, check the work directory. New files were added
+## open new terminal: top -o %CPU
+
+-----[FINAL MD RUN/PRODUCTION]-----
+1. Open MD.mdp file and copy: 
+	nsteps                  = 1000000   ; 2 * 1000000 = 2000 ps (2 ns)
+
+2. Copy the following commands in the terminal:
+gmx grompp -f MD.mdp -c NPT.gro -t NPT.cpt -p topol.top -n index.ndx -maxwarn 2 -o MD.tpr
+
+gmx mdrun -deffnm MD
+
+
+----[Recentering and Rewrapping Coordinates]----
+1. Copy the following commands in the terminal:
+	gmx trjconv -s MD.tpr -f MD.xtc -o MD_center.xtc -center -pbc mol -ur compact
+	#Choose "Protein" for centering and "System" for output.
+
+	#To extract the first frame (t = 0 ns) of the trajectory, use trjconv -dump with the recentered trajectory:
+	gmx trjconv -s MD.tpr -f MD_center.xtc -o start.pdb -dump 0
+
+
+------RMSD Calculations-----
+1. Copy the following commands in the terminal:
+	gmx rms -s MD.tpr -f MD_center.xtc -o rmsd.xvg
+	gmx rms -s MD.tpr -f MD_center.xtc -o rmsd.xvg -tu ns
+	4
+	13
+
+#(Select appropritate 2 options one by one and then open the output files in Grace) Select Backbone and then LIG
+
+	xmgrace rmsd.xvg
+
+------RMSF Calculations-----
+1. Copy the following commands in the terminal:
+	gmx rmsf -s MD.tpr -f MD_center.xtc -o rmsf.xvg
+	4
+
+#(Select appropritate Backbone open the output files in Grace)
+
+	xmgrace output.xvg
+
+-----------H-bonds-------------------
+1. Copy the following commands in the terminal:
+	gmx hbond -s MD.tpr -f MD_center.xtc -num hb.xvg
+	gmx hbond -s MD.tpr -f MD_center.xtc -num hb.xvg -tu ns
+	1
+	13
+	xmgrace hb.xvg
+
+-------------ENERGY Calculations---------------
+1. Copy the following commands in the terminal:
+	gmx energy -f MD.edr -o energy1.xvg
+	#Choose the option of your choice
+
+	xmgrace -nxy energy1.xvg
+
