@@ -2,7 +2,7 @@
 by: Mia Joy A. Inocencio
 
 ###################MANNUAL-GROMACS-PROTEIN LIGAND CODES###########################
-https://github.com/DweipayanG/GROMACS-Protein-Ligand
+https://github.com/Miyang001/Molecular-Dynamics-Protein-Ligand-Interaction-/blob/main/GROMACS%20UNIVERSAL%20MANUAL%20SCRIPT
 	- download all files and place them in one working location where MD simulation will be conducted.
 	- click: code < download ZIP
 
@@ -17,33 +17,35 @@ https://github.com/DweipayanG/GROMACS-Protein-Ligand
 	-click: ok
 	-save
 
-2. Open ligand, add hdrogens, and save it as 'LIG.mol2' ( depends on preferred name and it must be 3 letters only)
+2. Open ligand, add hydrogens, and save it as 'LIG.mol2' (depends on preferred name and it must be 3 letters only)
 
-#Open the LIG.mol2 file and in the second line 
-#Correction to be made in LIG.mol2 
-#Open LIG.mol2 by using nano command or simply opening the file in any text editor.
-
-2.1. "@<TRIPOS>MOLECULE" make sure this is the first line in the file.
+2.1. Open the LIG.mol2 file using the nano command or simply opening the file in any text editor, and make sure "@<TRIPOS>MOLECULE" is the first line in the file.
 		-Delete the header and empty spaces if present.
 	
 2.2. "@<TRIPOS>MOLECULE” there will be a name after this line maybe xxx.pdb or anything else.
 		-Replace to: LIG
 	
-2.3.	Bond orders "@<TRIPOS>BOND" will be arranged differently in each file. 
+2.3. Bond orders "@<TRIPOS>BOND" will be arranged differently in each file. 
 Arrange them in specific order to avoid errors using terminal. 
 Note: before copying the code below, make sure the working directory is fixed in the terminal (cd users/file path)
 	-Copy: perl sort_mol2_bonds.pl LIG.mol2 LIG.mol2
 
-3. Go to SwissParam "http://www.swissparam.ch/" and upload the 'Lig.mol2 file'
-4. Download the .zip folder
+3. Go to SwissParam "http://www.swissparam.ch/" and upload the 'Lig.mol2 file'.
+
+4. Download the .zip folder.
+
 5. Extract the folder and select MMFF folder. 
 Copy all the files except for LIG.mol2 and paste them to your working directory.
+
 6. Open the best pose ligand with the receptor.pdb file.
 	-Delete ligand, perform DockPrep, save it as .pdb file as 'REC.pdb'
-7. Make a working folder for Gromacs, copy contents of the downloaded zip file into this folder, 
-copy the DockPrep 'rec.pdb' in to th working folder
-8. Copy all the .mdp files into this working folder
+
+7. Make a working folder for Gromacs, copy contents of the downloaded zip file into this folder, copy the DockPrep 'rec.pdb' in to th working folder
+
+8. Copy all the .mdp files into this working folder.
+
 9. Open the terminal in this working folder and proceed with Gromacs.  
+
 
 ---------GROMACS-----------
 1. Open terminal and copy per line:
@@ -57,8 +59,11 @@ copy the DockPrep 'rec.pdb' in to th working folder
 
 Open lig.gro and conf.gro through texteditor.
 1. Copy content from 3rd line of lig.gro to the conf.gro file up to the 2nd last line.
+
 2. Check the column number from where the lig.gro data ends (x) in conf.gro and replace the value in 2nd line by x-4.
+
 3. Open file in chimera to check ligand and protein if working.
+
 
 -----EDIT THE FOLLOWING in topol.top -----
 1. Open topol.top file: 
@@ -72,6 +77,7 @@ Add:
 Last line
 Add: 
 	LIG 1
+
 
 -----EDIT THE FOLLOWING in lig.itp -----
 1. Open LIG.itp
@@ -88,7 +94,6 @@ To:
 ----------
 
 Copy the following commands in the terminal:
-
 	gmx editconf -f conf.gro -d 1.0 -bt triclinic -o box.gro
 
 	gmx solvate -cp box.gro -cs spc216.gro -p topol.top -o box_sol.gro
@@ -108,7 +113,6 @@ Copy the following commands in the terminal:
 	gmx mdrun -v -deffnm EM
 
 2. Make index files. Copy the following commands in the terminal:
- 
 	gmx make_ndx -f LIG.gro -o index_LIG.ndx
 		 > 0 & ! a H*
  		 > q
@@ -141,6 +145,7 @@ Copy the following commands in the terminal:
 	-nsteps should be like this:
 		nsteps                  = 50000     ; 2 * 50000 = 100 ps
 
+
 -----[NVT]-----
 1. copy the following commands in the terminal:
 	gmx grompp -f NVT.mdp -c EM.gro -r EM.gro -p topol.top -n index.ndx -maxwarn 2 -o NVT.tpr
@@ -154,7 +159,7 @@ gmx grompp -f NPT.mdp -c NVT.gro -r NVT.gro -p topol.top -n index.ndx -maxwarn 2
 	
 gmx mdrun -deffnm NPT
 
-## to know the progress, check the work directory. New files were added
+## to know the progress, check the work directory. New files were added.
 ## open new terminal: top -o %CPU
 
 -----[FINAL MD RUN/PRODUCTION]-----
